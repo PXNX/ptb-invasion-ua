@@ -1,12 +1,20 @@
 import logging
 
 from telegram import Update
-from telegram.ext import CallbackContext
+from telegram.ext import CallbackContext, ContextTypes, JobQueue
 
 from config import CHANNEL, FOOTER
 
 
-async def append_footer(update: Update, context: CallbackContext):
+async def append_footer_text(update: Update, _: ContextTypes.DEFAULT_TYPE):
+    print(f"append footer text :: {update}")
+
+    await update.channel_post.edit_text(update.channel_post.text_html_urled + FOOTER)
+
+
+async def append_footer(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print(f"append footer :: {update}")
+
     mg = update.channel_post.media_group_id
     original_caption = update.channel_post.caption_html_urled
 
@@ -22,21 +30,21 @@ async def append_footer(update: Update, context: CallbackContext):
             logging.exception("Error editing single :: ", e)
             pass
 
-
     else:
         prev_list = {update.channel_post.id}
 
-        # go through already present jobs and get their data
-        for job in context.job_queue.get_jobs_by_name(mg):
-            logging.info(f"Removed job {job}")
+        # go through already present jobs and get their dat
+        if context.job_queue is not None:
+            for job in context.job_queue.get_jobs_by_name(mg):
+                logging.info(f"Removed job {job}")
 
-            for post_id in job.data["ids"]:
-                prev_list.add(post_id)
+                for post_id in job.data["ids"]:
+                    prev_list.add(post_id)
 
-            if job.data["text"] is not None:
-                original_caption = job.data["text"]
+                if job.data["text"] is not None:
+                    original_caption = job.data["text"]
 
-            job.schedule_removal()
+                job.schedule_removal()
 
         data = {"ids": prev_list}
 
@@ -48,6 +56,8 @@ async def append_footer(update: Update, context: CallbackContext):
 
 
 async def append_footer_mg(context: CallbackContext):
+    print(f"append_footer_mg :: {context}")
+
     logging.info("job-data", context.job.data)
     posts = sorted(context.job.data["ids"])
 
