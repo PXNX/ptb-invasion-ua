@@ -6,6 +6,7 @@ from telegram.constants import ParseMode
 from telegram.ext import ApplicationBuilder, filters, Defaults, CommandHandler, PicklePersistence
 from telegram.ext import MessageHandler
 
+import crawl_api
 from config import CHANNEL, TOKEN, TEST_MODE, PORT
 from messages import append_footer, append_footer_text, append_footer_forward
 
@@ -37,6 +38,8 @@ def main():
     app.add_handler(MessageHandler(
         filters.UpdateType.CHANNEL_POST &  (filters.PHOTO | filters.VIDEO | filters.ANIMATION) & filters.Chat(chat_id=CHANNEL) & filters.FORWARDED,
         append_footer_forward))
+
+    app.add_handler(CommandHandler("setup_crawl", crawl_api.setup_crawl))
 
     if TEST_MODE:
         print("### Start Local ###")

@@ -1,3 +1,5 @@
-python-telegram-bot==20.0
-python-dotenv==0.21.0
-APScheduler==3.9.1
+python-telegram-bot[job-queue]==20.1
+python-dotenv==0.21.1
+beautifulsoup4~=4.11.2
+httpx~=0.23.3
+CairoSVG==2.6.0
