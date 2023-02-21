@@ -29,9 +29,9 @@ LOSS_DESCRIPTIONS = {
 
 LOSS_STOCKPILE = {
     'tanks': 8168,
-    'apv': 15993,
-    'artillery': 2818,
-    'mlrs': 1753,
+    'apv': 26993,
+    'artillery': 10991,
+    'mlrs': 4300,
     'aaws': 3422,
     'aircraft': 1551,
     'helicopters': 1098,
@@ -44,10 +44,13 @@ LOSS_STOCKPILE = {
 
 
 def get_time() -> str:
-    return (datetime.datetime.now() - datetime.timedelta(days=2)).strftime("%Y.%m.%d")
+    return (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%Y.%m.%d")
 
-def divide(number:int,by:int)->float:
-    return round(number/by, 2)
+
+def divide(number: int, by: int) -> float:
+    return round(number / by, 2)
+
+
 def chunks(data, size):
     it = iter(data)
     for i in range(0, len(data), size):
@@ -58,9 +61,9 @@ def format_number(number: int):
     return f"{number:,}".replace(",", ".")
 
 
-def create_svg(total_losses: Dict[str, int], new_losses: Dict[str, int], day:int):
+def create_svg(total_losses: Dict[str, int], new_losses: Dict[str, int], day: str):
     field_size = 2
-    all_width = 1300
+    all_width = 1320
     margin = 23
 
     heading_size = 48
@@ -78,7 +81,6 @@ def create_svg(total_losses: Dict[str, int], new_losses: Dict[str, int], day:int
     description_color = "white"
     background_color = "black"
 
-
     svg = f"""<?xml version='1.0' encoding='UTF-8' standalone='no'?>
     <svg
        width='{all_width}'
@@ -92,7 +94,7 @@ def create_svg(total_losses: Dict[str, int], new_losses: Dict[str, int], day:int
         y="{heading_size + margin}"
         font-size="{heading_size}"
         font-family="Bahnschrift"
-        fill="{heading_color}">Russische Verluste in der Ukraine <tspan fill="#e8cc00">Tag {day}</tspan></text>
+        fill="{heading_color}">Russische Verluste in der Ukraine <tspan fill="#e8cc00">{day}</tspan></text>
     """
 
     print("------")
@@ -101,7 +103,7 @@ def create_svg(total_losses: Dict[str, int], new_losses: Dict[str, int], day:int
         print("items :: ", item)
 
         for x, (k, v) in enumerate(item.items()):
-        #    print(y, x, "--", k, v)
+            #    print(y, x, "--", k, v)
             # fill="#002a24" stroke="#2c5a2b" # stroke="gray" stroke-width="{stroke_width}"
             svg += f"""
         <rect
@@ -128,12 +130,12 @@ def create_svg(total_losses: Dict[str, int], new_losses: Dict[str, int], day:int
             text-anchor="start"
             fill="{description_color}"
             x="{x * width_cell + (x + 2) * margin}"
-            font-size="40px">{LOSS_DESCRIPTIONS[k]}</tspan>
+            font-size="42px">{LOSS_DESCRIPTIONS[k]}</tspan>
         </text>"""
 
             if k in LOSS_STOCKPILE and LOSS_STOCKPILE[k] != 0:
                 svg += f"""<text x="{(x + 1) * width_cell + x * margin}" y="{(y * height_cell) + (y + 1) * margin + heading_space}"
-                 text-anchor="end" font-size="37px" font-family="Bahnschrift" fill="lightgrey" dominant-baseline="top">{divide(v * 100  ,LOSS_STOCKPILE[k])}%</text>"""
+                 text-anchor="end" font-size="36px" font-family="Bahnschrift" fill="lightgrey" dominant-baseline="top">{divide(v * 100, LOSS_STOCKPILE[k])}%</text>"""
 
     svg += "</svg>"
 
@@ -179,14 +181,14 @@ async def get_api(context: CallbackContext):
             'se': 0,
             'uav': 0,
             'missiles': 0,
-            'presidents':0
+            'presidents': 0
         }
 
         for day, item in data.items():
-          #  print(day)
+            #  print(day)
 
             for k, v in item.items():
-             #   print(k, v)
+                #   print(k, v)
 
                 if k != "captive":
                     total_losses[k] = total_losses[k] + v
@@ -196,16 +198,19 @@ async def get_api(context: CallbackContext):
         days = (datetime.datetime.now().date() - datetime.date(2022, 2, 25)).days
         display_date = (datetime.datetime.now()).strftime("%d.%m.%Y")
 
-        create_svg(total_losses, new_losses,days)
+        create_svg(total_losses, new_losses, display_date)
 
-        text = f"🔥 <u>Russische Verluste bis zum {display_date}</u>\n\n"
+        text = f"🔥 <b>Russische Verluste bis zum {display_date} (Tag {days})</b>"
         for k, v in total_losses.items():
-            if k!="presidents" and new_losses[k] !=0:
-                text += f"• <b>{LOSS_DESCRIPTIONS[k]} +{new_losses[k]}</b> — {divide(v,days)} pro Tag\n"
+            if k != "presidents" and new_losses[k] != 0:
+                daily = round(v / days, 1)
+                text += f"\n\n<b>{LOSS_DESCRIPTIONS[k]} +{format_number(new_losses[k])}</b>\n• {format_number(daily)} pro Tag"
+                if k in LOSS_STOCKPILE:
+                    text += f"\n• noch {format_number(round((LOSS_STOCKPILE[k] - v) / daily))} Tage"
 
         last_id = context.bot_data.get("last_loss_id", 1)
 
-        text += f"\nℹ️ <a href='https://telegra.ph/russland-ukraine-statistik-methodik-quellen-02-18'>Datengrundlage und Methodik</a>\n\n📊 <a href='https://t.me/invasion_ukraine/{last_id}'>vorige Statistik</a>{config.FOOTER}"
+        text += f"\n\nℹ️ <a href='https://telegra.ph/russland-ukraine-statistik-methodik-quellen-02-18'>Datengrundlage und Methodik</a>\n\n📊 <a href='https://t.me/invasion_ukraine/{last_id}'>vorige Statistik</a>{config.FOOTER}"
 
         print(text)
 
@@ -218,7 +223,8 @@ async def get_api(context: CallbackContext):
 
 async def setup_crawl(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("setup crwal")
-    context.bot_data.pop("last_loss","")
+  #  context.bot_data.pop("last_loss", "")
+#    context.bot_data.pop("last_loss_id", 18147)
     await get_api(context)
     print("help?")
     context.job_queue.run_repeating(get_api, datetime.timedelta(hours=2))
