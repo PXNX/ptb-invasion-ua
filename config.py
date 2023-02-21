@@ -9,7 +9,7 @@ PORT = os.getenv("PORT")
 CHANNEL = -1001638826420
 
 # Replace it with whatever footer you want to append to your messages
-FOOTER = "\n\nFolge uns für mehr!\n👉🏼 <a href='https://t.me/invasion_ukraine'>Invasion Ukraine 🇺🇦</a>"
+FOOTER = "\n\nFolge uns für mehr!\n👉🏼 @invasion_ukraine 🇺🇦"
 
 # if you test it locally, you can just do something like TOKEN="123abc--replace-this-with-what-@botfather-sent-you!"
 TOKEN = os.getenv("TELEGRAM")
