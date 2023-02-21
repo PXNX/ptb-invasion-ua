@@ -1,4 +1,3 @@
-import asyncio
 import datetime
 import json
 from itertools import islice
@@ -20,18 +19,35 @@ LOSS_DESCRIPTIONS = {
     'aircraft': "Flugzeuge",
     'helicopters': "Hubschrauber",
     'uav': "Drohnen",
-    'vehicles': "Lastkraftwägen",
+    'vehicles': "Lastkraftwagen",
     'boats': "Schiffe",
     'se': "Spezialausrüstung",
     'missiles': "Marschflugkörper",
-    'personnel': "Personal"
+    'personnel': "Getötetes Personal",
+    "presidents": "Präsidenten"
+}
+
+LOSS_STOCKPILE = {
+    'tanks': 8168,
+    'apv': 15993,
+    'artillery': 2818,
+    'mlrs': 1753,
+    'aaws': 3422,
+    'aircraft': 1551,
+    'helicopters': 1098,
+    'uav': 5028,
+    'vehicles': 98567,
+    'boats': 773,
+    'se': 1400,
+    'personnel': 1500000,
 }
 
 
 def get_time() -> str:
-    return (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%Y.%m.%d")
+    return (datetime.datetime.now() - datetime.timedelta(days=2)).strftime("%Y.%m.%d")
 
-
+def divide(number:int,by:int)->float:
+    return round(number/by, 2)
 def chunks(data, size):
     it = iter(data)
     for i in range(0, len(data), size):
@@ -42,29 +58,26 @@ def format_number(number: int):
     return f"{number:,}".replace(",", ".")
 
 
-def create_svg(total_losses: Dict[str, int], new_losses: Dict[str, int]):
-    field_size = 3
+def create_svg(total_losses: Dict[str, int], new_losses: Dict[str, int], day:int):
+    field_size = 2
+    all_width = 1300
+    margin = 23
 
-    all_width = 1580
-
-    margin = 24
-    stroke_width = 2
-    #  print("border_distance", border_distance)
-
-    heading_size = 42
-    heading_space = margin * 2.25 + heading_size
+    heading_size = 48
+    heading_space = margin * 2.5 + heading_size
 
     items = list(chunks(total_losses, field_size))
     row_count = len(items)
-
-    width_cell = (all_width - (field_size + 1) * margin) / (field_size)
+    width_cell = (all_width - (field_size + 1) * margin) / field_size
     height_cell = 160
+    all_height = row_count * (margin + height_cell) + heading_space
 
-    all_height = row_count * height_cell + (row_count) * margin + heading_space
+    new_color = "#e8cc00"
+    heading_color = "white"
+    loss_color = "white"
+    description_color = "white"
+    background_color = "black"
 
-    now = (datetime.datetime.now() - datetime.timedelta(days=1))
-
-    day = (now.date() - datetime.date(2022, 2, 24)).days
 
     svg = f"""<?xml version='1.0' encoding='UTF-8' standalone='no'?>
     <svg
@@ -74,47 +87,63 @@ def create_svg(total_losses: Dict[str, int], new_losses: Dict[str, int]):
        version='1.1'
        xmlns='http://www.w3.org/2000/svg'
        xmlns:svg='http://www.w3.org/2000/svg'>
-    <text y="{heading_size + margin}" x="50%" font-size="{heading_size}"  font-family="Bahnschrift"  fill="lightgray"  ><tspan dy="0" x="50%"  text-anchor="middle"  >Russische Verluste in der Ukraine - Tag {day}</tspan></text>
+    <text
+        x="{margin}"
+        y="{heading_size + margin}"
+        font-size="{heading_size}"
+        font-family="Bahnschrift"
+        fill="{heading_color}">Russische Verluste in der Ukraine <tspan fill="#e8cc00">Tag {day}</tspan></text>
     """
 
-    #  print("------")
+    print("------")
 
     for y, item in enumerate(items):
-        #  print("items :: ", item)
+        print("items :: ", item)
 
         for x, (k, v) in enumerate(item.items()):
-            #   print(y, x, "--", k, v)
-
+        #    print(y, x, "--", k, v)
+            # fill="#002a24" stroke="#2c5a2b" # stroke="gray" stroke-width="{stroke_width}"
             svg += f"""
-        <rect width='{width_cell}' height='{height_cell}' x='{x * width_cell + (x + 1) * margin}'
-         y="{(y * height_cell) + y * margin + heading_space}"  stroke="#2c5a2b" stroke-width="{stroke_width}" paint-order="fill" fill="#002a24"  />
+        <rect
+            width='{width_cell}'
+            height='{height_cell}'
+            x='{x * width_cell + (x + 1) * margin}'
+            y="{(y * height_cell) + y * margin + heading_space}"
+            paint-order="fill"
+            fill="#00231e"/>
 
-<text x="{x * width_cell + (x + 2) * margin}" y="{(y * height_cell) + (y + 2) * margin + heading_space + stroke_width}" text-anchor="start" font-size="50px" font-family="Bahnschrift"  fill="white" dominant-baseline="central"  >
-{format_number(v)}<tspan 
-"""
+        <text
+            x="{x * width_cell + (x + 2) * margin}"
+            y="{(y * height_cell) + (y + 2.2) * margin + heading_space}"
+            text-anchor="start"
+            dominant-baseline="central"
+            font-size="58px"
+            font-family="Bahnschrift"
+            fill="{loss_color}">{format_number(v)}<tspan """
 
-            if new_losses[k] != 0:
-                svg += f"""
-                fill="#ffcc00"   > +{format_number(new_losses[k])}
-            </tspan><tspan"""
+            if k != "presidents" and new_losses[k] != 0:
+                svg += f"fill='{new_color}'> +{format_number(new_losses[k])}</tspan><tspan "
 
-            svg += f"""
-  dy="1.5em" text-anchor="start" fill="#bedebd" x="{x * width_cell + (x + 2) * margin}" font-size="38px">{LOSS_DESCRIPTIONS[k]}</tspan>
-</text>"""
+            svg += f"""dy="1.5em"
+            text-anchor="start"
+            fill="{description_color}"
+            x="{x * width_cell + (x + 2) * margin}"
+            font-size="40px">{LOSS_DESCRIPTIONS[k]}</tspan>
+        </text>"""
 
-    svg += f"""<text y="{all_height - margin - height_cell / 2}"  font-size="32px"  dominant-baseline="center" font-family="Bahnschrift"  text-anchor="end" fill="lightgray" >
-               <tspan x="{all_width - margin}">Geschätzte Verluste vom 24.02.2022 bis {now.strftime("%d.%m.%Y")}</tspan>
-               <tspan x="{all_width - margin}" dy="1.2em">Quelle: Ukrainisches Verteidigungsministerium</tspan>
-               <tspan x="{all_width - margin}" dy="-2.4em" >Abonniere uns auf Telegram: @invasion_ukraine</tspan>
-               </text>
-</svg>"""
+            if k in LOSS_STOCKPILE and LOSS_STOCKPILE[k] != 0:
+                svg += f"""<text x="{(x + 1) * width_cell + x * margin}" y="{(y * height_cell) + (y + 1) * margin + heading_space}"
+                 text-anchor="end" font-size="37px" font-family="Bahnschrift" fill="lightgrey" dominant-baseline="top">{divide(v * 100  ,LOSS_STOCKPILE[k])}%</text>"""
+
+    svg += "</svg>"
 
     print(svg)
 
-    cairosvg.svg2png(bytestring=svg, write_to='field.png', background_color="#00231e")
+    cairosvg.svg2png(bytestring=svg, write_to='loss.png', background_color=background_color)
 
 
 async def get_api(context: CallbackContext):
+    print("get api")
     key = context.bot_data.get("last_loss", "")
     now = get_time()
     print("crawl: ", key, now)
@@ -130,7 +159,7 @@ async def get_api(context: CallbackContext):
 
         try:
             new_losses = data[now]
-            # new_losses.pop("captive")
+            new_losses.pop("captive")
 
         except KeyError as e:
             print("Could not get entry with key: ", e)
@@ -150,33 +179,37 @@ async def get_api(context: CallbackContext):
             'se': 0,
             'uav': 0,
             'missiles': 0,
+            'presidents':0
         }
 
         for day, item in data.items():
-            print(day)
+          #  print(day)
 
             for k, v in item.items():
-                print(k, v)
+             #   print(k, v)
 
                 if k != "captive":
                     total_losses[k] = total_losses[k] + v
 
         print("---- found ---- ", datetime.datetime.now().strftime("%d.%m.%Y, %H:%M:%S"))
 
-        create_svg(total_losses, new_losses)
+        days = (datetime.datetime.now().date() - datetime.date(2022, 2, 25)).days
+        display_date = (datetime.datetime.now()).strftime("%d.%m.%Y")
 
-        display_date = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%d.%m.%Y")
+        create_svg(total_losses, new_losses,days)
+
         text = f"🔥 <u>Russische Verluste bis zum {display_date}</u>\n\n"
         for k, v in total_losses.items():
-            text += f"• {LOSS_DESCRIPTIONS[k]}: {v}\n"
+            if k!="presidents" and new_losses[k] !=0:
+                text += f"• <b>{LOSS_DESCRIPTIONS[k]} +{new_losses[k]}</b> — {divide(v,days)} pro Tag\n"
 
         last_id = context.bot_data.get("last_loss_id", 1)
 
-        text += f"\n🔗 <a href='https://t.me/invasion_ukraine/{last_id}'>vorige Statistik</a>{config.FOOTER}"
+        text += f"\nℹ️ <a href='https://telegra.ph/russland-ukraine-statistik-methodik-quellen-02-18'>Datengrundlage und Methodik</a>\n\n📊 <a href='https://t.me/invasion_ukraine/{last_id}'>vorige Statistik</a>{config.FOOTER}"
 
         print(text)
 
-        with open("field.png", "rb") as f:
+        with open("loss.png", "rb") as f:
             msg = await context.bot.send_photo(config.CHANNEL, photo=f, caption=text)
 
         context.bot_data["last_loss"] = now
@@ -185,7 +218,7 @@ async def get_api(context: CallbackContext):
 
 async def setup_crawl(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("setup crwal")
-    # del context.bot_data["last_loss"]
+    context.bot_data.pop("last_loss","")
     await get_api(context)
     print("help?")
     context.job_queue.run_repeating(get_api, datetime.timedelta(hours=2))
