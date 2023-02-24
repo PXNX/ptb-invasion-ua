@@ -206,11 +206,11 @@ async def get_api(context: CallbackContext):
                 daily = round(v / days, 1)
                 text += f"\n\n<b>{LOSS_DESCRIPTIONS[k]} +{format_number(new_losses[k])}</b>\n• {format_number(daily)} pro Tag"
                 if k in LOSS_STOCKPILE:
-                    text += f"\n• noch {format_number(round((LOSS_STOCKPILE[k] - v) / daily))} Tage"
+                    text += f"\n• Bei aktuellem Verbrauch noch {format_number(round((LOSS_STOCKPILE[k] - v) / daily))} Tage Lagerbestand."
 
         last_id = context.bot_data.get("last_loss_id", 1)
 
-        text += f"\n\nℹ️ <a href='https://telegra.ph/russland-ukraine-statistik-methodik-quellen-02-18'>Datengrundlage und Methodik</a>\n\n📊 <a href='https://t.me/invasion_ukraine/{last_id}'>vorige Statistik</a>{config.FOOTER}"
+        text += f"\n\nMit /loss gibt es in den Kommentaren weitere Statistiken.\n\nℹ️ <a href='https://telegra.ph/russland-ukraine-statistik-methodik-quellen-02-18'>Datengrundlage und Methodik</a>\n\n📊 <a href='https://t.me/invasion_ukraine/{last_id}'>vorige Statistik</a>{config.FOOTER}"
 
         print(text)
 
@@ -223,8 +223,8 @@ async def get_api(context: CallbackContext):
 
 async def setup_crawl(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("setup crwal")
-  #  context.bot_data.pop("last_loss", "")
-#    context.bot_data.pop("last_loss_id", 18147)
+    #  context.bot_data.pop("last_loss", "")
+    #    context.bot_data.pop("last_loss_id", 18147)
     await get_api(context)
     print("help?")
     context.job_queue.run_repeating(get_api, datetime.timedelta(hours=2))
