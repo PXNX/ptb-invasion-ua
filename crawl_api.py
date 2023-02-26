@@ -206,7 +206,7 @@ async def get_api(context: CallbackContext):
                 daily = round(v / days, 1)
                 text += f"\n\n<b>{LOSS_DESCRIPTIONS[k]} +{format_number(new_losses[k])}</b>\n• {format_number(daily)} pro Tag"
                 if k in LOSS_STOCKPILE:
-                    text += f"\n• Bei aktuellem Verbrauch noch {format_number(round((LOSS_STOCKPILE[k] - v) / daily))} Tage Lagerbestand."
+                    text += f"\n• Lagerbestand: noch {format_number(round((LOSS_STOCKPILE[k] - v) / daily))} Tage"
 
         last_id = context.bot_data.get("last_loss_id", 1)
 

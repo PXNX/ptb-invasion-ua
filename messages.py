@@ -6,6 +6,7 @@ import time as t
 from telegram import Update
 from telegram.ext import CallbackContext, ContextTypes
 
+import config
 from config import CHANNEL, FOOTER
 
 
@@ -29,7 +30,7 @@ async def append_footer_forward(update: Update, context: ContextTypes.DEFAULT_TY
     if is_valid and time < context.bot_data.get("latest", time):
         text = re.sub(r"\s*$", "", re.sub(r"Quelle:(.|\s)*", "", update.channel_post.caption_html_urled)) + FOOTER
         await update.channel_post.copy(CHANNEL, text)
-       # await update.channel_post.delete()
+        # await update.channel_post.delete()
         print("-- delete -")
 
     else:
@@ -75,7 +76,7 @@ async def append_footer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             data["text"] = original_caption
 
         # 10 seconds is maybe too high, but better waiting than achieving incorrect results because it may take longer
-        context.job_queue.run_once(append_footer_mg, 10, data, update.channel_post.media_group_id)
+        context.job_queue.run_once(append_footer_mg, 8, data, update.channel_post.media_group_id)
 
 
 async def append_footer_mg(context: CallbackContext):
@@ -100,3 +101,59 @@ async def append_footer_mg(context: CallbackContext):
     except Exception as e:
         logging.exception("Error editing mediagroup text :: ", e)
         pass
+
+
+async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print("update::: ", update.message)
+
+    await update.message.delete()
+
+    if update.message.reply_to_message is not None:
+        if update.message.reply_to_message.is_automatic_forward:
+            text = f"💬  <a href='{update.message.reply_to_message.link}'>Kanalpost</a>"
+            response = "Danke für deine Meldung, wir Admins prüfen das 😊"
+        else:
+            text = f"‼️ <a href='{update.message.reply_to_message.link}'>Nachricht</a> des Nutzers {update.message.reply_to_message.from_user.mention_html()}"
+            response = "Ein Nutzer hat deine Nachricht gemeldet, wir Admins prüfen das. Bitte sei brav 😉"
+
+        text += f" gemeldet von {update.message.from_user.mention_html()}:\n\n"
+
+        if update.message.reply_to_message.caption is not None:
+            text += update.message.reply_to_message.caption_html_urled
+        else:
+            text += update.message.reply_to_message.text_html_urled
+
+        await context.bot.send_message(config.GROUP_ADMIN, text)
+
+        await update.message.reply_to_message.reply_text(response)
+
+
+def is_admin(update: Update):
+    return update.message.reply_to_message is not None and (
+                update.message.from_user.id in config.ADMINS or update.message.from_user.username == "GroupAnonymousBot") and update.message.reply_to_message.from_user.id not in config.ADMINS
+
+
+async def warn(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.delete()
+
+    if is_admin(update):
+        warnings = context.bot_data.get(update.message.reply_to_message.from_user.id, 0) + 1
+
+        if warnings <= config.MAX_WARNINGS:
+            context.bot_data[update.message.reply_to_message.from_user.id] = warnings
+
+            await update.message.reply_to_message.reply_text(
+                f"‼️ <b>Für diese Nachricht wurdest du verwarnt!</b>\n\nDamit hast du {warnings} Warnungen. Bei {config.MAX_WARNINGS} fliegst du. Generell sind wir bei bereits verwarnten Nutzern strenger was diese Entscheidung betrifft.\n\nBitte verhalte dich zivilisiert, sei einfach brav und pöble nicht rum. Grundloser Hass und Trolle haben hier nichts verloren.")
+
+
+async def unwarn(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.delete()
+
+    if is_admin(update):
+        warnings = context.bot_data.get(update.message.reply_to_message.from_user.id, 1) - 1
+
+        if warnings >= 0:
+            context.bot_data[update.message.reply_to_message.from_user.id] = warnings
+
+            await update.message.reply_to_message.reply_text(
+                f"🎉 <b>Dir wurde eine Warnung erlassen! </b>\n\nDamit hast du {warnings} Warnungen. Bei {config.MAX_WARNINGS} fliegst du.")
