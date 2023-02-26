@@ -1,4 +1,7 @@
 # import logging
+import logging
+import os
+from datetime import datetime
 
 from telegram.constants import ParseMode
 from telegram.ext import ApplicationBuilder, filters, Defaults, CommandHandler, PicklePersistence
@@ -9,14 +12,12 @@ from config import CHANNEL, TOKEN
 from crawl_api import setup_crawl
 from messages import append_footer, append_footer_text, append_footer_forward, admin, warn, unwarn
 
-
-# LOG_FILENAME = r'C:\Users\Pentex\PycharmProjects\ptb-invasion-ua\logs\log-' + f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.out"
-# if not os.path.exists(LOG_FILENAME):
-#   open(LOG_FILENAME, "w")
-# logging.basicConfig(
-#   format="%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)s - %(funcName)20s()]: %(message)s ",
-#   level=logging.INFO, filename=LOG_FILENAME
-# )
+LOG_FILENAME = rf"C:\Users\Pentex\PycharmProjects\ptb-invasion-ua\logs\{datetime.now().strftime('%Y-%m-%d')}\{datetime.now().strftime('%H-%M-%S')}.out"
+os.makedirs(os.path.dirname(LOG_FILENAME), exist_ok=True)
+logging.basicConfig(
+    format="%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)s - %(funcName)20s()]: %(message)s ",
+    level=logging.INFO, filename=LOG_FILENAME
+)
 
 
 def main():
