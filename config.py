@@ -9,6 +9,8 @@ PORT = os.getenv("PORT")
 CHANNEL = -1001638826420
 GROUP_ADMIN=-855684999
 GROUP_CHAT=-1001631149964
+GROUPS = (GROUP_CHAT,
+          -1001891495700)
 
 # Replace it with whatever footer you want to append to your messages
 FOOTER = "\n\nFolge uns für mehr!\n👉🏼 @invasion_ukraine 🇺🇦"
@@ -18,6 +20,8 @@ TOKEN = os.getenv("TELEGRAM")
 
 ADMINS = {
 1732408088, #Nichda
-703453307 #Nyx
+703453307, #Nyx
+1306510471, #Reiseleiter
+773175052 #Borge
 }
 MAX_WARNINGS = 3

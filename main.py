@@ -1,6 +1,7 @@
 # import logging
 import logging
 import os
+import re
 from datetime import datetime
 
 from telegram.constants import ParseMode
@@ -27,7 +28,7 @@ def main():
         .persistence(PicklePersistence(filepath="persistence")) \
         .build()
 
-    app.add_handler(MessageHandler(filters.Chat(config.GROUP_CHAT) & filters.Regex("@admin"),
+    app.add_handler(MessageHandler(filters.Chat(config.GROUPS) & filters.Regex(re.compile(r'^@admin', re.IGNORECASE)),
                                    admin))  # filters.Chat(chat_id=config.GROUP_CHAT) &
 
     # This filters for Photos, Videos and Gifs in your Channel. Normal Text-messages are ignored.
@@ -45,8 +46,8 @@ def main():
         append_footer_forward))
 
     app.add_handler(CommandHandler("crawl", setup_crawl, filters.Chat(config.ADMINS)))
-    app.add_handler(CommandHandler("warn", warn, filters.Chat(config.GROUP_CHAT)))
-    app.add_handler(CommandHandler("unwarn", unwarn, filters.Chat(config.GROUP_CHAT)))
+    app.add_handler(CommandHandler("warn", warn, filters.Chat(config.GROUPS)))
+    app.add_handler(CommandHandler("unwarn", unwarn, filters.Chat(config.GROUPS)))
 
     print("### Start Local ###")
     app.run_polling()

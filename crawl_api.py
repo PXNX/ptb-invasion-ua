@@ -1,5 +1,6 @@
 import datetime
 import json
+import logging
 from itertools import islice
 from typing import Dict
 
@@ -58,15 +59,15 @@ def chunks(data, size):
 
 
 def format_number(number: int):
-    return f"{number:,}".replace(",", ".")
+    return f"{number:,}".replace(",", "║").replace(".", ",").replace("║", ".")
 
 
 def create_svg(total_losses: Dict[str, int], new_losses: Dict[str, int], day: str):
     field_size = 2
-    all_width = 1320
-    margin = 23
+    all_width = 1342
+    margin = 24
 
-    heading_size = 48
+    heading_size = 46
     heading_space = margin * 2.5 + heading_size
 
     items = list(chunks(total_losses, field_size))
@@ -89,18 +90,28 @@ def create_svg(total_losses: Dict[str, int], new_losses: Dict[str, int], day: st
        version='1.1'
        xmlns='http://www.w3.org/2000/svg'
        xmlns:svg='http://www.w3.org/2000/svg'>
-    <text
-        x="{margin}"
-        y="{heading_size + margin}"
-        font-size="{heading_size}"
-        font-family="Bahnschrift"
-        fill="{heading_color}">Russische Verluste in der Ukraine <tspan fill="#e8cc00">{day}</tspan></text>
+       <defs>
+   <linearGradient id="lgrad" x1="0%" y1="50%" x2="100%" y2="50%" >
+    
+                   
+     <stop offset="0%" style="stop-color:rgb(5,45,31);stop-opacity:1.00" />
+          <stop offset="100%" style="stop-color:rgb(23,46,41);stop-opacity:1.00" />
+
+    </linearGradient>
+  </defs>
+        <text
+            x="50%"
+            y="{heading_size + margin}"
+            text-anchor="middle"
+            font-size="{heading_size}"
+            fill="{heading_color}"
+            font-family="Bahnschrift">Russische Verluste in der Ukraine - {day}</text>
     """
 
     print("------")
 
     for y, item in enumerate(items):
-        print("items :: ", item)
+        logging.info(f"items :: {item}" )
 
         for x, (k, v) in enumerate(item.items()):
             #    print(y, x, "--", k, v)
@@ -112,7 +123,9 @@ def create_svg(total_losses: Dict[str, int], new_losses: Dict[str, int], day: st
             x='{x * width_cell + (x + 1) * margin}'
             y="{(y * height_cell) + y * margin + heading_space}"
             paint-order="fill"
-            fill="#00231e"/>
+            rx="16"
+            fill="url(#lgrad)"
+          />
 
         <text
             x="{x * width_cell + (x + 2) * margin}"
@@ -135,14 +148,38 @@ def create_svg(total_losses: Dict[str, int], new_losses: Dict[str, int], day: st
 
             if k in LOSS_STOCKPILE and LOSS_STOCKPILE[k] != 0:
                 svg += f"""<text x="{(x + 1) * width_cell + x * margin}" y="{(y * height_cell) + (y + 1) * margin + heading_space}"
-                 text-anchor="end" font-size="36px" font-family="Bahnschrift" fill="lightgrey" dominant-baseline="top">{divide(v * 100, LOSS_STOCKPILE[k])}%</text>"""
+                 text-anchor="end" font-size="36px" font-family="Bahnschrift" fill="lightgrey" dominant-baseline="top">{str(divide(v * 100, LOSS_STOCKPILE[k])).replace(".",",")}%</text>"""
 
-    svg += "</svg>"
+    svg += f"""
+    
+    <g transform="translate(50%, 50%)">
+       <text
+            text-anchor="middle"
+            transform="rotate(-45)"
+            font-size="{heading_size*2}"
+            fill-opacity="0.1"
+            fill="#a1ffff" >@invasion_ukraine</text>
+    </g>
+    
+</svg>"""
 
     print(svg)
 
     cairosvg.svg2png(bytestring=svg, write_to='loss.png', background_color=background_color)
 
+create_svg({
+'personnel': 161520, 'tanks': 3492,'apv': 6799, 'artillery': 2528,
+'mlrs': 502, 'aaws': 262,
+'aircraft': 304, 'helicopters': 289,
+'vehicles': 5377, 'boats': 18,'se': 257, 'uav': 2132,
+'missiles': 907, 'presidents': 0
+},{
+'personnel': 980, 'tanks': 8,'apv': 10, 'artillery': 9,
+'mlrs': 7, 'aaws': 2,
+'aircraft': 0, 'helicopters': 0,
+'vehicles': 10, 'boats': 0,'se': 1, 'uav': 12,
+'missiles': 0, 'presidents': 0
+}, "15.03.2023")
 
 async def get_api(context: CallbackContext):
     print("get api")
@@ -150,10 +187,10 @@ async def get_api(context: CallbackContext):
     now = get_time()
     print("crawl: ", key, now)
 
-    print(">>>> waiting... ", datetime.datetime.now().strftime("%d.%m.%Y, %H:%M:%S"), "::", key, "::", now)
+    logging.info(f">>>> waiting... { datetime.datetime.now().strftime('%d.%m.%Y, %H:%M:%S')} :: { key} :: { now}")
 
     if key != now:
-        print("---- requesting ---- ")
+        logging.info("---- requesting ---- ")
 
         res = httpx.get('https://russian-casualties.in.ua/api/v1/data/json/daily')
         data = json.load(res)["data"]
@@ -212,7 +249,7 @@ async def get_api(context: CallbackContext):
 
         text += f"\n\nMit /loss gibt es in den Kommentaren weitere Statistiken.\n\nℹ️ <a href='https://telegra.ph/russland-ukraine-statistik-methodik-quellen-02-18'>Datengrundlage und Methodik</a>\n\n📊 <a href='https://t.me/invasion_ukraine/{last_id}'>vorige Statistik</a>{config.FOOTER}"
 
-        print(text)
+        logging.info(text)
 
         with open("loss.png", "rb") as f:
             msg = await context.bot.send_photo(config.CHANNEL, photo=f, caption=text)
@@ -222,7 +259,7 @@ async def get_api(context: CallbackContext):
 
 
 async def setup_crawl(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print("setup crwal")
+    print("setup crawl")
     #  context.bot_data.pop("last_loss", "")
     #    context.bot_data.pop("last_loss_id", 18147)
     await get_api(context)
